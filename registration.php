@@ -1,7 +1,16 @@
 <?php
-  $storesurname = isset($_POST['surname']) ? $_POST['surname'] : '';
-  $storefirstname = isset($_POST['forename']) ? $_POST['forename'] : '';
-  $storeemail = isset($_POST['email']) ? $_POST['email'] : '';
+  require_once "pdo.php"
+  if ( isset($_POST['surname']) && isset($_POST['forename']) && isset($_POST['email']) && isset($_POST['password'])){
+    $sql = "INSERT INTO users (surname, forename, email, password) VALUES (:surname, :forename, :email,:password)";
+    $stmt = $pdo -> prepare($sql);
+    $stmt -> execute(array(
+      ':surname' => $_POST['surname'],
+      ':forename' => $_POST['forename'],
+      ':email' => $_POST['email'],
+      ':password' => password_hash($_POST['password'], PASSWORD_BCRYPT);
+    ));
+  }
+
 ?>
 <!DOCTYPE HTML>
 <html>
