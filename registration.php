@@ -1,14 +1,29 @@
 <?php
-  require_once "pdo.php"
+  require_once "pdo.php";
+  $storesurname = '';
+  $storeforename = '';
+  $storeemail = '';
+  session_start();
+
+
+
   if ( isset($_POST['surname']) && isset($_POST['forename']) && isset($_POST['email']) && isset($_POST['password'])){
+    // input validation
+
+
+
+
     $sql = "INSERT INTO users (surname, forename, email, password) VALUES (:surname, :forename, :email,:password)";
     $stmt = $pdo -> prepare($sql);
     $stmt -> execute(array(
-      ':surname' => $_POST['surname'],
-      ':forename' => $_POST['forename'],
-      ':email' => $_POST['email'],
-      ':password' => password_hash($_POST['password'], PASSWORD_BCRYPT);
+      ':surname' => htmlentities($_POST['surname']),
+      ':forename' => htmlentities($_POST['forename']),
+      ':email' => htmlentities($_POST['email']),
+      ':password' => password_hash($_POST['password'], PASSWORD_BCRYPT)
     ));
+    $storesurname = $_POST['surname'];
+    $storeforename = $_POST['forename'];
+    $storeemail = $_POST['email'];
   }
 
 ?>
@@ -28,7 +43,7 @@
     </p>
     <p>
       <label for "forename">First Name</label>
-      <input type="text" name="forename" required value="<?= htmlentities($storefirstname)?>">
+      <input type="text" name="forename" required value="<?= htmlentities($storeforename)?>">
     </p>
     <p>
       <label for "email">Email</label>
@@ -46,5 +61,6 @@
       <input type="submit" name="submit" value="Submit">
     </p>
   </form>
+  <p>Already have an account? <a href="index.php">Sign-up here</a>.</p>
 </body>
 </html>
