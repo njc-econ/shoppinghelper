@@ -1,14 +1,18 @@
 <?php
   require_once "pdo.php";
-  $storesurname = '';
-  $storeforename = '';
-  $storeemail = '';
+
   session_start();
 
 
 
   if ( isset($_POST['surname']) && isset($_POST['forename']) && isset($_POST['email']) && isset($_POST['password'])){
     // input validation
+    // if email already exists in database don't accept
+    // if password is too short, don't accept
+
+
+    $sql = "SELECT * FROM users WHERE email = :email"
+    $stmt = $pdo -> prepare($sql);
 
 
 
@@ -16,15 +20,19 @@
     $sql = "INSERT INTO users (surname, forename, email, password) VALUES (:surname, :forename, :email,:password)";
     $stmt = $pdo -> prepare($sql);
     $stmt -> execute(array(
-      ':surname' => htmlentities($_POST['surname']),
-      ':forename' => htmlentities($_POST['forename']),
-      ':email' => htmlentities($_POST['email']),
+      ':surname' => $_POST['surname'],
+      ':forename' => $_POST['forename'],
+      ':email' => $_POST['email'],
       ':password' => password_hash($_POST['password'], PASSWORD_BCRYPT)
     ));
-    $storesurname = $_POST['surname'];
-    $storeforename = $_POST['forename'];
-    $storeemail = $_POST['email'];
-  }
+
+    /*
+    $_SESSION['surname'] = $_POST['surname'];
+    $_SESSION['forename'] = $_POST['forename'];
+    $_SESSION['email'] = $_POST['email'];
+    */
+
+  } else
 
 ?>
 <!DOCTYPE HTML>
@@ -47,7 +55,7 @@
     </p>
     <p>
       <label for "email">Email</label>
-      <input type="email" name="email" requiredvalue="<?= htmlentities($storeemail)?>">
+      <input type="email" name="email" required value="<?= htmlentities($storeemail)?>">
     </p>
     <p>
       <label for "password">Password</label>
