@@ -6,6 +6,161 @@
     header('Location: index.php');
   }
 
+
+
+
+  if (isset($_POST['recipesubmit'])){
+    // Validate post data:
+    // title
+    if (!isset($_POST['recipetitle']) || strlen($_POST['recipetitle']) < 1){
+      $_SESSION['error'] = 'Recipe title is required.';
+      header('Location: recipeinput.php');
+      return;
+    }
+
+    if (strlen($_POST['recipetitle']) > 255){
+      $_SESSION['error'] = 'Recipe title is too long, please abbreviate. Max 255 characters.';
+      header('Location: recipeinput.php');
+      return;
+    }
+
+    // no. served, must be integer
+    if (!is_int($_POST['serves'])){
+      $_SESSION['error'] = 'The number of people served by the recipe must be provided and be a whole number.';
+      header('Location: recipeinput.php');
+      return;
+    }
+
+
+    function validateIngredients($redirectAdd) {
+      if (!isset($_POST['noIngreds_1']) || $_POST['noIngreds_1']==0){
+        $_SESSION['error'] = 'What is a recipe without ingredients? Please add ingredients.';
+        header($redirectAdd);
+        return;
+      }
+      $noIngredients = $_POST['noIngreds_1'];
+      for ($i = 0; $i < $noIngredients; $i++){
+          if (!$_POST['quantity'.$i]=="" && !is_numeric($_POST['quantity'.$i])){
+            $_SESSION['error'] = 'Input quantities must be left blank or be numeric';
+            header($redirectAdd);
+            return;
+          }
+
+          $measures = array(
+            "", "g", "kg", "ml", "l"
+          );
+          if (!in_array($_POST['measure'.$i])){
+            $_SESSION['error'] = 'Invalid ingredient measure provided';
+            header($redirectAdd);
+            return;
+          }
+
+          if (is_numeric($_POST['ingredient'.$i])){
+            $_SESSION['error'] = 'Invalid ingredient name';
+            header($redirectAdd);
+            return;
+          }
+
+          if (strlen($_POST['ingredient'.$i]) < 1){
+            $_SESSION['error'] = 'Ingredient should not be left blank.';
+            header($redirectAdd);
+            return;
+          }
+
+          if (strlen($_POST['ingredient'.$i]) > 100){
+            $_SESSION['error'] = 'Ingredient name too long. Please abbreviate. Max 100 characters.';
+            header($redirectAdd);
+            return;
+          }
+        }
+      }
+
+      validateIngredients('Location: recipeinput.php');
+
+      function validateSteps($redirectAdd)  {
+        if (!isset($_POST['noSteps_1']) || !is_numeric($_POST['noSteps_1'])) {
+          $_SESSION['error'] = "Invalid input. Please don't play with the code. No of recipe steps has to be numeric";
+          header($redirectAdd);
+          return;
+        }
+        $noSteps = $_POST['noSteps_1'];
+
+        for ($i = 0; $i < $noSteps; $i++){
+          if (strlen($_POST['stepTitle'.$i])<1 && strlen($_POST['stepText'.$i])<1) {
+            $_SESSION['error'] = "Invalid input. Please input some text to describe how you cook this dish.";
+            header($redirectAdd);
+            return;
+          }
+        }
+
+      }
+
+      validateSteps('Location: recipeinput.php');
+
+      // now update data in database
+
+      $stmt = $pdo -> prepare('INSERT INTO recipeHead (title, vegetarian, vegan, glutenfree, numserved, private, fork_id, user_id)
+                               VALUES (:tit, :veggie, :vegan, :glutenfree, :served, :private, :fork, :user)');
+      $stmt -> execute(array(
+        ':tit' => $_POST['recipetitle'],
+        ':veggie' => isset($_POST['vegetarian']) ? 1 : 0,
+        ':vegan' => isset($_POST['vegan']) ? 1 : 0,
+        ':glutenfree' => isset($_POST['glutenfree']) ? 1 : 0,
+        ':served' => $_POST['serves'],
+        ':private' => $_POST['recipeShare'],
+        ':fork' => isset($_GET['fork_id']) ? $_GET['fork_id'] : null,
+        ':user' => $_SESSION['userid']
+      ));
+
+
+      $recipe_id = $pdo -> lastInsertId();
+
+      // check if ingredients are already listed in the ingredients table
+      // if so collect the ingredient id
+      // if not add the ingredient and get the ingredient id
+      $noIngredients = $_POST['noIngreds_1'];
+
+      for ($i = 0; $i < $noIngredients; $i++){
+        $stmt = $pdo -> prepare('SELECT ingredient_id FROM Ingredients WHERE name = :ingredientName');
+        $stmt -> execute(array(
+          ':ingredientName' => trim($_POST['ingredient'.$i])
+        ));
+        $row = $stmt -> fetch(PDO::FETCH_ASSOC);
+        if ($row == false){
+          $stmtInsert = $pdo -> prepare('INSERT INTO Ingredients (name) VALUES (:ingredientName)');
+          $stmt -> execute(array(
+            ':ingredientName' => trim($_POST['ingredient'.$i])
+          ));
+          $ingredient_id = $pdo -> lastInsertId();
+        } else {
+          $ingredient_id = $row['ingredient_id'];
+        }
+
+        // insert ingredient into recipe table
+        $stmt = $pdo -> prepare('INSERT INTO recipeIngredients (ingredient_id, quantity, measure, input_rank) VALUES (:recipe_id, :ingredient_id, :quantity, :measure, :input_rank)');
+        $stmt -> execute(array(
+            ':recipe_id' => $recipe_id,
+            ':ingredient_id' => $ingredient_id,
+            ':quantity' => $_POST['quantity'.$i],
+            ':measure' => $_POST['quantity'.$i],
+            ':input_rank' => $i +1
+        ));
+
+      }
+
+      // next insert the steps to cook the recipe
+      
+    }
+
+
+
+
+
+
+
+
+
+
 ?>
 
 
@@ -16,10 +171,12 @@
   <head>
     <meta charset="utf-8">
     <title>Groceries made Easy: Add new recipe</title>
+    <?php require_once("headerscript.php") ?>
   </head>
   <body>
     <h1>Your Recipe</h1>
 
+    <p class='errormessage'><?php if (isset($_SESSION['error'])){echo $_SESSION['error']; unset($_SESSION['error']);} ?></p>
   <!-- give recipe title -->
   <form method="post">
     <p>
@@ -50,39 +207,190 @@
   <div class="add_recipe_ingredient">
 
       <h4>Add Ingredients</h4>
-
       <table>
         <tr>
           <th>Quantity</th><th>Measure</th><th>Ingredient</th>
         </tr>
         <tr>
-          <td><input type="text" name="quantity" value=""></td> <!-- use javascript to ensure value is numeric -->
-          <td><select class="quantity" name="quantity" >
-            <option value="0" selected></option>
-            <option value="1">g</option>
-            <option value="2">kg</option>
-            <option value="3">ml</option>
-            <option value="1">l</option>
+          <td><input type="text" name="quantity" value="" size="10" id="quantity"></td> <!-- use javascript to ensure value is numeric -->
+          <td><select class="measure" name="measure" id="measure">
+            <option value="" selected></option>
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="ml">ml</option>
+            <option value="l">l</option>
           </select></td>
-          <td><input type="text" name="addIngredient" value="" id="addIngredient" placeholder="Ingredient name"></td>
+          <td><input type="text" name="addIngredient" value="" class="inputIngredient" placeholder="Ingredient name" id="ingredient"><input type="submit" name="ingredientSubmit" value="submit" id="addIngredient"></td>
+
         </tr>
       </table>
 
 <!-- use javascript to fill in a table on the browser, ingredient by ingredient -->
-
+      <table id="ingredientsTable">
+        <thead >
+          <tr hidden="true" id="ingredtableheadings">
+          <th>Quantity</th>
+          <th></th>
+          <th>Ingredient</th>
+          <th>Delete</th>
+        </tr>
+        </thead>
+        <input type="hidden" name="noIngreds_1" id="noIngreds_1" value="0">
+      </table>
 
   </div>
 
 
   <!-- add recipe steps -->
-
+  <h4>Add recipe steps <input id="addStep" type="submit" value="+"></h4>
   <!-- image upload -->
-
-
+  <div id="recipeSteps">
+  </div>
+  <input type="hidden" name="noSteps_1" id="noSteps_1" value="0">
   <!-- submit completed recipe -->
 
   <input type="submit" name="recipesubmit" value="Upload Recipe">
   </form>
 
+
   </body>
+
+  <script type="text/javascript">
+
+    function validateIngredient() {
+      quantity = $('#quantity').val();
+      measure = $('#measure').val();
+      ingredient = $('#ingredient').val();
+      if (ingredient.length < 1){
+        alert("Please input an ingredient name");
+        return false;
+      }
+
+      return true;
+    }
+
+
+
+    function addIngredient() {
+      if ($("#ingredientsTable tbody").length ==0) {
+        $("#ingredientsTable").append("<tbody></tbody>");
+        $("#ingredtableheadings").removeAttr("hidden");
+      }
+
+      noIngredients = $("#ingredientsTable tbody tr").length;
+      $("#noIngreds_1").val(noIngredients+1);
+      $("#ingredientsTable tbody").append(
+        '<tr id="ingred'+noIngredients+'">'+
+        '<td>'+'<input type="hidden" name="quantity'+noIngredients+'" id="quantity'+noIngredients+'" value="'+$('#quantity').val()+'">'+$('#quantity').val()+'</td>'+
+        '<td>'+'<input type="hidden" name="measure'+noIngredients+'" id="measure'+noIngredients+'" value="'+$('#measure').val()+'">'+$('#measure').val()+'</td>'+
+        '<td>'+'<input type="hidden" name="ingredient'+noIngredients+'" id="ingredient'+noIngredients+'" value="'+$('#ingredient').val()+'">'+$('#ingredient').val()+'</td>'+
+        '<td>'+'<button type="button" name="button" onclick="delIngredient(this);">Remove</button></td>'+
+        '</tr>'
+      );
+
+      $('#quantity').val("")
+      $('#measure').val("")
+      $('#ingredient').val("")
+    }
+
+    function validateSteps() {
+      noSteps = $("#recipeSteps div").length;
+      //console.log(noSteps);
+      if (noSteps>0){
+        for (var i=0; i<noSteps; i++){
+          stepTitle = $("#stepTitle"+i).val();
+          stepText = $("#stepTitle"+i).val();
+          if (stepTitle.length < 1 || stepText.length < 1){
+            alert("Please input in available steps before adding new ones.");
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function delIngredient(btn) {
+      noIngredients = $("#ingredientsTable tbody tr").length;
+      saveid = $(btn).parents("tr");
+      $(saveid).remove();
+      deleteItem = saveid.attr('id').replace('ingred','');
+      deletedRow = parseInt(deleteItem);
+      if (noIngredients === 1){
+        $("#ingredtableheadings").attr("hidden","true");
+      }
+      $("#noIngreds_1").val(noIngredients-1);
+      // for all rows in the table with an id above the
+      // deleted item, reduce by 1
+
+      if (deletedRow + 1 < noIngredients){
+        for (var i=deletedRow+1; i <= noIngredients-1; i++){
+          $("#ingred"+i.toString()).attr("id","ingred"+(i.toString()-1));
+          $("#quantity"+i.toString()).attr("name","quantity"+(i.toString()-1));
+          $("#quantity"+i.toString()).attr("id","quantity"+(i.toString()-1));
+          $("#measure"+i.toString()).attr("name","measure"+(i.toString()-1));
+          $("#measure"+i.toString()).attr("id","measure"+(i.toString()-1));
+          $("#ingredient"+i.toString()).attr("name","ingredient"+(i.toString()-1));
+          $("#ingredient"+i.toString()).attr("id","ingredient"+(i.toString()-1));
+        }
+      }
+    }
+
+
+    function deleteSteps(btn) {
+      noSteps = $("#recipeSteps div").length;
+      //console.log("No. of Steps = "+noSteps);
+      saveid = $(btn).parents("div div");
+      $(saveid).remove();
+      deleteItem = saveid.attr('id').replace('step','');
+      deletedRow = parseInt(deleteItem);
+      $("#noSteps_1").val(noSteps-1);
+      // for all cooking steps with an id above the
+      // deleted item, reduce by 1
+      if (deletedRow + 1 < noSteps){
+        for (var i=deletedRow + 1; i <= noSteps-1; i++){
+          $("#step"+i.toString()).attr("id","step"+(i.toString()-1));
+          $("#stepTitle"+i.toString()).attr("name","stepTitle"+(i.toString()-1));
+          $("#stepTitle"+i.toString()).attr("id","stepTitle"+(i.toString()-1));
+          $("#stepText"+i.toString()).attr("name","stepText"+(i.toString()-1));
+          $("#stepText"+i.toString()).attr("id","stepText"+(i.toString()-1));
+          $("#stepNumber"+i.toString()).text(i);
+          $("#stepNumber"+i.toString()).attr("id","stepNumber"+(i.toString()-1));
+        }
+      }
+    }
+
+    function addSteps() {
+      noSteps = $("#recipeSteps div").length;
+      $("#noSteps_1").val(noSteps+1);
+      $("#recipeSteps").append(
+        '<div id="step'+noSteps+'"><p>Step <span id="stepNumber'+noSteps+'">'+(noSteps+1)+'</span><input type="text" value = "" name="stepTitle'+noSteps+'" id="stepTitle'+noSteps+'" size=40px><input type="button" value="-" onclick="deleteSteps(this);"></p><textarea id="stepText'+noSteps+'" name ="stepText'+noSteps+'"rows=8" cols="80"></textarea></div>'
+      //  '<div id="Step'+noSteps+'"><p>Step '+(noSteps+1)+':</p><input type="text" value="" name="stepHead'+noSteps'"></p><textarea name ="stepDesc'+noSteps+'"rows=8" cols="80"></textarea></div><br>'
+      );
+    }
+
+
+
+    $(document).ready(
+      function(){
+        noIngredients = document.getElementById("ingredientsTable").childElementCount;
+        $('#addIngredient').click(
+          function(event){
+            event.preventDefault();
+            if (validateIngredient()){
+                addIngredient();
+            };
+          }
+        );
+
+        $('#addStep').click(
+          function(event){
+            event.preventDefault();
+            if (validateSteps()){
+              addSteps();
+            }
+          }
+        )
+      }
+    )
+  </script>
 </html>
