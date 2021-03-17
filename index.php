@@ -2,44 +2,53 @@
   require_once 'pdo.php';
   session_start();
 
-  $message = false;
-  $messagecolor = 'red';
-
-  if (isset($_POST['loginSubmit'])) {
-    if (isset($_POST['emailLogin']) && isset($_POST['passLogin'])){
+  if (isset($_POST['login'])) {
+    if (isset($_POST['email']) && isset($_POST['pass'])){
       //$pass = hash('md5',$salt.$_POST['passLogin']);
-      if (strlen($_POST['emailLogin']) < 1 || strlen($_POST['passLogin']) < 1){
-        $message = "Email and password are required";
-        error_log("Login fail ".$_POST['who']." $message");
-      } else if (strpos($_POST['emailLogin'],'@') === false){
-        $message = "Email must have an at-sign (@)";
-        error_log("Login fail ".$_POST['emailLogin']." $message");
+      if (strlen($_POST['email']) < 1 || strlen($_POST['pass']) < 1){
+        $msg = "Email and password are required";
+        $_SESSION['error'] = $msg;
+        error_log("Login fail:".$_POST['email']." - ".$msg);
+        header("Location: index.php");
+        return;
       }
 
-      if ($message === false){
-        $stmt = $pdo -> prepare('SELECT id, forename, email, password FROM users WHERE email = :email;');
-        $statementOutput = $stmt -> execute( array(
-          ':email' => $_POST['emailLogin']));
-        $result = $stmt -> fetch(PDO::FETCH_ASSOC);
-        if ($result){
-          if (password_verify($_POST['passLogin'], $result['password'])) {
-            $_SESSION["userid"] = $result['id'];
-            $_SESSION["name"] = $result['forename'];
-            header('Location: start.php');
-          } else {
-            $message = "Entered password is not correct.";
-          }
-        } else {
-          $message = "No user exists with that email address.";
+      if (strpos($_POST['email'],'@') === false){
+        $msg = "Email must have an at-sign (@)";
+        $_SESSION['error'] = $msg;
+        error_log("Login fail:".$_POST['email'].$msg);
+        header("Location: index.php");
+        return;
+      }
+
+      $stmt = $pdo -> prepare('SELECT id, forename, email, password FROM users WHERE email = :email;');
+      $statementOutput = $stmt -> execute( array(
+        ':email' => $_POST['email'])
+      );
+      $result = $stmt -> fetch(PDO::FETCH_ASSOC);
+      if ($result){
+        if (password_verify($_POST['pass'], $result['password'])) {
+          $_SESSION["userid"] = $result['id'];
+          $_SESSION["name"] = $result['forename'];
+          header('Location: start.php');
+          return;
         }
 
+        $_SESSION['error'] = "Entered password is not correct.";
+        header('Location: index.php');
+        return;
+
+      }
+
+      $_SESSION['error'] = "No user exists with that email address.";
+      header('Location: index.php');
+      return;
         //foreach ($pdo -> query($stmt) as $row){
           //print_r($row);
         //  $tableinput = $tableinput."<li>".$row['year']." ".$row['make']." / ".$row['mileage']."</li>";
         //}
-      }
     }
-}
+  }
 ?>
 
 <!DOCTYPE html>
@@ -51,12 +60,19 @@
   <body>
 
     <h2>Sign in:</h2>
+    <p class="erroroutput">
+      <?php
+        if (isset($_SESSION['error'])){
+          echo $_SESSION['error'];
+          unset($_SESSION['error']);
+        }
+      ?>
+    </p>
     <form class="login" method="post">
-      <label for="emailLogin">Email</label><input type="email" name="emailLogin" id="emailLogin" required>
-      <label for="passLogin">Password</label><input type="password" name="passLogin" id="passLogin" required>
-      <input type="submit" name="loginSubmit" value="Login">
+      <label for="emailLogin">Email</label><input type="email" name="email" id="emailLogin" required>
+      <label for="passLogin">Password</label><input type="password" name="pass" id="passLogin" required>
+      <input type="submit" name="login" value="Login">
     </form>
-    <?php if ($message !== false){echo '<p style="color: '.$messagecolor.';">'.$message.'</p>';} ?>
   <p>Don't have an account? <a href="registration.php">Sign-up here</a>.</p>
   </body>
 </html>
