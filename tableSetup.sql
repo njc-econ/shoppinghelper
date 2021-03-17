@@ -16,16 +16,18 @@ CREATE TABLE recipeHead (
   `vegetarian` BIT(1) NOT NULL,
   `vegan` BIT(1) NOT NULL,
   `glutenfree` BIT(1) NOT NULL,
-  `numserved` INT(2),
-  `fork_id` INT(11),                  -- recipes can be created as a fork from another recipe
+  `private` INT(1) NOT NULL,
+  `numserved` INT(2) NOT NULL,
+  `fork_id` INT(11),                 -- recipes can be created as a fork from another recipe
   `user_id` INT(11),
   PRIMARY KEY (`recipe_id`),
-  CONSTRAINT FOREIGN KEY (user_id) REFERENCES users (user_id)
+  CONSTRAINT FOREIGN KEY (user_id) REFERENCES users (user_id),
+  CONSTRAINT FOREIGN KEY (fork_id) REFERENCES recipeHead (recipe_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
 
 CREATE TABLE ingredients (
   `ingredient_id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(50) UNIQUE,
+  `name` VARCHAR(100) UNIQUE,
   PRIMARY KEY (`ingredient_id`),
   INDEX (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
@@ -35,6 +37,7 @@ CREATE TABLE recipeIngredients (
   `ingredient_id` INT(11) NOT NULL,
   `quantity` FLOAT,
   `measure` VARCHAR(5),
+  `input_rank` INT(2) NOT NULL,
   CONSTRAINT FOREIGN KEY (`recipe_id`) REFERENCES recipeHead (`recipe_id`),
   CONSTRAINT FOREIGN KEY (`ingredient_id`) REFERENCES ingredients (`ingredient_id`),
   PRIMARY KEY (`recipe_id`, `ingredient_id`),
