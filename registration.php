@@ -20,6 +20,7 @@
       "surname" => $_POST['surname'],
       "forename" => $_POST['forename'],
       "email" => $_POST['email'],
+      "preferred_lang" => $_POST['lang']
     );
 
 
@@ -71,17 +72,23 @@
       return;
     }
 
+    require_once('utilsValidation.php');
+    $lang_id = validateLanguage('Location: index.php', $pdo);
 
 
-    $sql = "INSERT INTO users (surname, forename, email, password) VALUES (:surname, :forename, :email,:password)";
+    $sql = "INSERT INTO users (surname, forename, email, password, preferred_lang) VALUES (:surname, :forename, :email, :password, :lang_id)";
     $stmt = $pdo -> prepare($sql);
     $stmt -> execute(array(
       ':surname' => $_POST['surname'],
       ':forename' => $_POST['forename'],
       ':email' => $_POST['email'],
-      ':password' => password_hash($_POST['password'], PASSWORD_BCRYPT)
+      ':password' => password_hash($_POST['password'], PASSWORD_BCRYPT),
+      ':lang_id' => $lang_id
     ));
+
     unset($_SESSION['reginputs']);
+    header('Location: index.php');
+    return;
     /*
 
     */
@@ -125,6 +132,14 @@
       <label for "confirm_password">Confirm Password</label>
       <input type="password" name="confirm_password" required>
     </p>
+
+    <label for "preferredlang">Preferred Shopping List Language:</label>
+    <select class="lang" name="lang" id="preferredlang" required>
+        <option value="de">German</option>
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+    </select>
+
     <p>
       <input type="submit" name="submit" value="Submit">
     </p>
