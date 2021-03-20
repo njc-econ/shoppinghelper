@@ -2,6 +2,11 @@
   require_once 'pdo.php';
   session_start();
 
+  if (isset($_SESSION["user_id"])){
+    header("Location: start.php");
+    return;
+  }
+
   if (isset($_POST['login'])) {
     if (isset($_POST['email']) && isset($_POST['pass'])){
       //$pass = hash('md5',$salt.$_POST['passLogin']);
@@ -21,14 +26,14 @@
         return;
       }
 
-      $stmt = $pdo -> prepare('SELECT id, forename, email, password FROM users WHERE email = :email;');
+      $stmt = $pdo -> prepare('SELECT user_id, forename, email, password FROM users WHERE email = :email;');
       $statementOutput = $stmt -> execute( array(
         ':email' => $_POST['email'])
       );
       $result = $stmt -> fetch(PDO::FETCH_ASSOC);
       if ($result){
         if (password_verify($_POST['pass'], $result['password'])) {
-          $_SESSION["userid"] = $result['id'];
+          $_SESSION["user_id"] = $result['user_id'];
           $_SESSION["name"] = $result['forename'];
           header('Location: start.php');
           return;
