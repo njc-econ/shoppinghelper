@@ -2,8 +2,10 @@
   require_once "pdo.php";
   session_start();
 
-  if (!isset($_SESSION['name'])){
+  if (!isset($_SESSION['user_id'])){
     header('Location: index.php');
+    $_SESSION['error'] = 'Only logged in users can submit recipes. Please login.';
+    return;
   }
 
 
@@ -25,82 +27,35 @@
     }
 
     // no. served, must be integer
-    if (!is_int($_POST['serves'])){
+    if (!is_numeric($_POST['serves'])){
       $_SESSION['error'] = 'The number of people served by the recipe must be provided and be a whole number.';
       header('Location: recipeinput.php');
       return;
     }
 
+      require_once('utilsValidation.php');
 
-    function validateIngredients($redirectAdd) {
-      if (!isset($_POST['noIngreds_1']) || $_POST['noIngreds_1']==0){
-        $_SESSION['error'] = 'What is a recipe without ingredients? Please add ingredients.';
-        header($redirectAdd);
-        return;
-      }
-      $noIngredients = $_POST['noIngreds_1'];
-      for ($i = 0; $i < $noIngredients; $i++){
-          if (!$_POST['quantity'.$i]=="" && !is_numeric($_POST['quantity'.$i])){
-            $_SESSION['error'] = 'Input quantities must be left blank or be numeric';
-            header($redirectAdd);
-            return;
-          }
-
-          $measures = array(
-            "", "g", "kg", "ml", "l"
-          );
-          if (!in_array($_POST['measure'.$i])){
-            $_SESSION['error'] = 'Invalid ingredient measure provided';
-            header($redirectAdd);
-            return;
-          }
-
-          if (is_numeric($_POST['ingredient'.$i])){
-            $_SESSION['error'] = 'Invalid ingredient name';
-            header($redirectAdd);
-            return;
-          }
-
-          if (strlen($_POST['ingredient'.$i]) < 1){
-            $_SESSION['error'] = 'Ingredient should not be left blank.';
-            header($redirectAdd);
-            return;
-          }
-
-          if (strlen($_POST['ingredient'.$i]) > 100){
-            $_SESSION['error'] = 'Ingredient name too long. Please abbreviate. Max 100 characters.';
-            header($redirectAdd);
-            return;
-          }
-        }
-      }
 
       validateIngredients('Location: recipeinput.php');
 
-      function validateSteps($redirectAdd)  {
-        if (!isset($_POST['noSteps_1']) || !is_numeric($_POST['noSteps_1'])) {
-          $_SESSION['error'] = "Invalid input. Please don't play with the code. No of recipe steps has to be numeric";
-          header($redirectAdd);
-          return;
-        }
-        $noSteps = $_POST['noSteps_1'];
 
-        for ($i = 0; $i < $noSteps; $i++){
-          if (strlen($_POST['stepTitle'.$i])<1 && strlen($_POST['stepText'.$i])<1) {
-            $_SESSION['error'] = "Invalid input. Please input some text to describe how you cook this dish.";
-            header($redirectAdd);
-            return;
-          }
-        }
-
-      }
 
       validateSteps('Location: recipeinput.php');
 
+      // validate the language
+
+
+
+
+      $lang_id = validateLanguage('Location: recipeinput.php', $pdo);
+
+
       // now update data in database
 
-      $stmt = $pdo -> prepare('INSERT INTO recipeHead (title, vegetarian, vegan, glutenfree, numserved, private, fork_id, user_id)
-                               VALUES (:tit, :veggie, :vegan, :glutenfree, :served, :private, :fork, :user)');
+
+
+      $stmt = $pdo -> prepare('INSERT INTO recipeHead (title, vegetarian, vegan, glutenfree, numserved, private, fork_id, user_id, lang_id)
+                               VALUES (:tit, :veggie, :vegan, :glutenfree, :served, :private, :fork, :user, :lang_id)');
       $stmt -> execute(array(
         ':tit' => $_POST['recipetitle'],
         ':veggie' => isset($_POST['vegetarian']) ? 1 : 0,
@@ -109,7 +64,8 @@
         ':served' => $_POST['serves'],
         ':private' => $_POST['recipeShare'],
         ':fork' => isset($_GET['fork_id']) ? $_GET['fork_id'] : null,
-        ':user' => $_SESSION['userid']
+        ':user' => $_SESSION['user_id'],
+        ':lang_id' => $lang_id
       ));
 
 
@@ -121,35 +77,57 @@
       $noIngredients = $_POST['noIngreds_1'];
 
       for ($i = 0; $i < $noIngredients; $i++){
-        $stmt = $pdo -> prepare('SELECT ingredient_id FROM Ingredients WHERE name = :ingredientName');
-        $stmt -> execute(array(
-          ':ingredientName' => trim($_POST['ingredient'.$i])
+        $stmt = $pdo -> prepare('SELECT ingredient_id FROM ingredients WHERE name = :ingredientName AND lang_id = :lang_id');
+        $result = $stmt -> execute(array(
+          ':ingredientName' => trim($_POST['ingredient'.$i]),
+          ':lang_id' => $lang_id
         ));
         $row = $stmt -> fetch(PDO::FETCH_ASSOC);
-        if ($row == false){
-          $stmtInsert = $pdo -> prepare('INSERT INTO Ingredients (name) VALUES (:ingredientName)');
-          $stmt -> execute(array(
-            ':ingredientName' => trim($_POST['ingredient'.$i])
+        if ($row === false || $row === 0){
+          print_r(1);
+          $stmtInsert = $pdo -> prepare('INSERT INTO ingredients (name, lang_id) VALUES (:ingredientName, :lang_id)');
+          $stmtInsert -> execute(array(
+            ':ingredientName' => trim($_POST['ingredient'.$i]),
+            ':lang_id' => $lang_id
           ));
           $ingredient_id = $pdo -> lastInsertId();
         } else {
           $ingredient_id = $row['ingredient_id'];
         }
-
         // insert ingredient into recipe table
-        $stmt = $pdo -> prepare('INSERT INTO recipeIngredients (ingredient_id, quantity, measure, input_rank) VALUES (:recipe_id, :ingredient_id, :quantity, :measure, :input_rank)');
+        $stmt = $pdo -> prepare('INSERT INTO recipeIngredients (recipe_id, ingredient_id, quantity, measure, input_rank) VALUES (:recipe_id, :ingredient_id, :quantity, :measure, :input_rank);');
         $stmt -> execute(array(
             ':recipe_id' => $recipe_id,
             ':ingredient_id' => $ingredient_id,
             ':quantity' => $_POST['quantity'.$i],
-            ':measure' => $_POST['quantity'.$i],
+            ':measure' => $_POST['measure'.$i],
             ':input_rank' => $i +1
         ));
 
       }
 
+      $noSteps = $_POST['noSteps_1'];
+
+
       // next insert the steps to cook the recipe
-      
+      for ($i = 0; $i < $noSteps; $i++){
+        print_r($i);
+        $stmt = $pdo -> prepare('INSERT INTO recipeSteps (recipe_id, stepNumber, stepTitle, stepText) VALUES (:recipe_id, :stepNumber, :stepTitle, :stepText);');
+        $stmt -> execute(array(
+          ':recipe_id' => $recipe_id,
+          ':stepNumber' => $i +1,
+          ':stepTitle' => $_POST['stepTitle'.$i],
+          ':stepText' => $_POST['stepText'.$i]
+        ));
+
+
+      }
+
+      header('Location: recipe.php?recipe_id='.$recipe_id);
+      $_SESSION['success'] = 'Recipe successfully loaded.';
+      return;
+
+
     }
 
 
@@ -191,6 +169,13 @@
 
 
       <h4>Recipe Characteristics</h4>
+
+      <select class="lang" name="lang" id="recipelang">
+          <option value="de">German</option>
+          <option value="en" selected>English</option>
+          <option value="es">Spanish</option>
+      </select>
+
       <p>
       <input type="checkbox" name="vegetarian" value="veggie" name="recipechar1" selected><label for="recipechar1">Vegetarian</label><br>
       <input type="checkbox" name="vegan" value="vegan" name="recipechar2"><label for="recipechar2">Vegan</label><br>
@@ -242,10 +227,11 @@
 
 
   <!-- add recipe steps -->
-  <h4>Add recipe steps <input id="addStep" type="submit" value="+"></h4>
+  <h4>Add recipe steps </h4>
   <!-- image upload -->
   <div id="recipeSteps">
   </div>
+  <input id="addStep" type="submit" value="+">
   <input type="hidden" name="noSteps_1" id="noSteps_1" value="0">
   <!-- submit completed recipe -->
 
