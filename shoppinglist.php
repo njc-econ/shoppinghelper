@@ -14,7 +14,7 @@
     // if not add to shopping list
     $stmt = $pdo -> prepare('INSERT INTO shoppingList (user_id, itemname, quantity, addDT) VALUES (:user_id, :itemname, :quantity, NOW())');
     $stmt -> execute(array(
-      ':user_id'=>$_SESSION['userid'],
+      ':user_id'=>$_SESSION['user_id'],
       ':itemname'=>htmlentities($_POST['newItem']),
       ':quantity'=>htmlentities($_POST['newQuantity'])
     ));
@@ -23,16 +23,16 @@
   if (isset($_POST['bought'])){
     $stmt = $pdo -> prepare('UPDATE shoppingList SET purchasedDT = NOW() WHERE (user_id = :user_id AND item_id = :item_id);');
     $stmt -> execute(array(
-      ':user_id'=>$_SESSION['userid'],
+      ':user_id'=>$_SESSION['user_id'],
       ':item_id'=>$_POST['item_id']
     ));
   }
 
   // prepare output of the saved shopping list, includes buttons
   // to remove item and mark as bought
-  $stmt = $pdo -> prepare('SELECT item_id, itemname, quantity FROM shoppingList WHERE user_id = :user_id AND purchasedDT IS NULL');
+  $stmt = $pdo -> prepare('SELECT shoppingList.item_id, itemname, quantity FROM shoppingList JOIN shoppingItems ON shoppingList.item_id = shoppingItems.item_id WHERE user_id = :user_id AND purchasedDT IS NULL');
   $statementOutput = $stmt -> execute( array(
-    ':user_id' => $_SESSION['userid']));
+    ':user_id' => $_SESSION['user_id']));
   $result = $stmt -> fetchAll(PDO::FETCH_ASSOC);
   //print_r($result[0]['itemname']);
   $tablerow = '';
@@ -55,8 +55,24 @@
   <head>
     <meta charset="utf-8">
     <title>Groceries made Easy: Shopping List</title>
+    <?php require_once("headerscript.php") ?>
   </head>
+
+  <header>
+    <?php require_once("headerIn.html") ?>
+  </header>
+
+
   <body>
+    <!-- First list all the recipes that have been added to
+         the shopping list, allow the user to remove them easily -->
+
+
+    <!-- Then list the consolidated ingredients of the recipes,
+         allow the user to modify the quantities -->
+
+    <!-- Then allow the user to add additional items -->    
+
 
     <h1>Your shopping list</h1>
     <table>

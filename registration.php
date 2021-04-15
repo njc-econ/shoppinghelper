@@ -100,8 +100,13 @@
 <html>
   <head>
     <title>Groceries made Easy: User Registration</title>
-
+    <?php require_once("headerscript.php") ?>
   </head>
+
+<header>
+  
+</header>
+
 
 <body>
   <h3>Register</h3>

@@ -5,25 +5,30 @@
     header('Location: index.php');
     require 'logout.php';
   }
-  if ( isset($_POST['logout']) ) {
-      session_destroy();
-      header('Location: index.php');
-      return;
-  }
 
  ?>
 
  <!DOCTYPE html>
  <html lang="en" dir="ltr">
-   <head>
+    <?php require_once("headerscript.php") ?>
+    <head>
      <meta charset="utf-8">
      <title></title>
    </head>
+
+   <header>
+     <?php require_once("headerIn.html") ?>
+   </header>
+
+
    <body>
     <h1>Welcome <?php echo $_SESSION['name']?>!</h1>
     <?php if (isset($_SESSION['error'])){echo $_SESSION['error']; unset($_SESSION['error']);} ?>
     <h2>Your recipes</h2>
+    <div class="recipeList" id="yourRecipes">
 
+
+    </div>
 
     <h2>Recommended Recipes</h2>
 
@@ -34,4 +39,23 @@
 
     <a href="logout.php">Logout</a>
    </body>
+   <a href="recipe.php?recipe_id="></a>
  </html>
+
+ <script type="text/javascript">
+ $.getJSON("yourrecipes.php",function(data){
+   for (i in data){
+     $('#yourRecipes').append('<a href="recipe.php?recipe_id='+data[i].recipe_id+'">'+data[i].title+'</a><br>');
+   };
+ });
+
+
+
+
+
+    $(document).ready(
+      function(){
+
+      }
+    )
+ </script>

@@ -61,6 +61,7 @@
   <head>
     <meta charset="utf-8">
     <title>Groceries made Easy</title>
+    <?php require_once("headerscript.php") ?>
   </head>
   <body>
 
