@@ -27,7 +27,7 @@ CREATE TABLE `users` (
   `password` VARCHAR(128) NOT NULL,
   `preferred_lang` INT(2) unsigned,
   PRIMARY KEY (`user_id`),
-  CONSTRAINT FOREIGN KEY (`preferred_lang`) REFERENCES languages (lang_id),
+  CONSTRAINT FOREIGN KEY (`preferred_lang`) REFERENCES languages (lang_id) ON UPDATE CASCADE ON DELETE SET NULL,
   INDEX (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
 
@@ -46,10 +46,10 @@ CREATE TABLE recipeHead (
   `user_id` INT(11) unsigned,
   `lang_id` INT(2) unsigned,
   PRIMARY KEY (`recipe_id`),
-  CONSTRAINT FOREIGN KEY (recipeType_id) REFERENCES recipeType (recipeType_id),
-  CONSTRAINT FOREIGN KEY (user_id) REFERENCES users (user_id),
-  CONSTRAINT FOREIGN KEY (fork_id) REFERENCES recipeHead (recipe_id),
-  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (lang_id)
+  CONSTRAINT FOREIGN KEY (recipeType_id) REFERENCES recipeType (recipeType_id) ON UPDATE CASCADE ON DELETE SET NULL,
+  CONSTRAINT FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT FOREIGN KEY (fork_id) REFERENCES recipeHead (recipe_id) ON UPDATE CASCADE ON DELETE SET NULL,
+  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (lang_id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
 
 CREATE TABLE ingredients (
@@ -57,7 +57,7 @@ CREATE TABLE ingredients (
   `name` VARCHAR(100),
   `lang_id` INT(2) unsigned,
   PRIMARY KEY (`ingredient_id`),
-  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (lang_id),
+  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (lang_id) ON DELETE CASCADE ON UPDATE CASCADE,
   UNIQUE KEY (`name`,`lang_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
 
@@ -68,7 +68,8 @@ CREATE TABLE images (
   `image_rank` INT(1), /* in future allow multiple images per recipe, rank 0 is the header image, subsequent numbers correspond to steps */
   `upload_date` DATETIME,
   PRIMARY KEY (`image_id`),
-  CONSTRAINT FOREIGN KEY (`recipe_id`) REFERENCES recipeHead (`recipe_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT FOREIGN KEY (`recipe_id`) REFERENCES recipeHead (`recipe_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX(filename)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
 
 
@@ -111,6 +112,18 @@ CREATE TABLE shoppingItems (
   PRIMARY KEY (`item_id`),
   UNIQUE KEY (`itemname`,`lang`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+/*
+Table to list all recipes on shopping list
+*/
+CREATE TABLE recipeShopping (
+  `user_id` INT(11) unsigned NOT NULL,
+  `sourcerecipe_id` INT(11) unsigned NOT NULL,
+  `addedDT` DATETIME NOT NULL,
+  CONSTRAINT FOREIGN KEY (`sourcerecipe_id`) REFERENCES recipeHead (`recipe_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 
 CREATE TABLE `shoppingList` (
   `user_id` INT(11) unsigned NOT NULL,
