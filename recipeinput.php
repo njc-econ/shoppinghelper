@@ -8,56 +8,82 @@
     return;
   }
 
+if (isset($_POST["recipesubmit"])){
+
+
+  // Validate post data:
+  // title
+  if (!isset($_POST['recipetitle']) || strlen($_POST['recipetitle']) < 1){
+    $_SESSION['error'] = 'Recipe title is required.';
+    header('Location: recipeinput.php');
+    return;
+  }
+
+  if (strlen($_POST['recipetitle']) > 255){
+    $_SESSION['error'] = 'Recipe title is too long, please abbreviate. Max 255 characters.';
+    header('Location: recipeinput.php');
+    return;
+  }
+
+  // no. served, must be integer
+  if (!is_numeric($_POST['serves'])){
+    $_SESSION['error'] = 'The number of people served by the recipe must be provided and be a whole number.';
+    header('Location: recipeinput.php');
+    return;
+  }
+
+    require_once('utilsValidation.php');
+
+
+    validateIngredients('Location: recipeinput.php');
 
 
 
-  if (isset($_POST['recipesubmit'])){
-    // Validate post data:
-    // title
-    if (!isset($_POST['recipetitle']) || strlen($_POST['recipetitle']) < 1){
-      $_SESSION['error'] = 'Recipe title is required.';
+    validateSteps('Location: recipeinput.php');
+
+    // validate the language
+
+    $lang_id = validateLanguage('Location: recipeinput.php', $pdo);
+
+
+    // photo upload validation
+    $isimage = validateImage('Location: recipeinput.php');
+
+    if ($isimage !== true){
       header('Location: recipeinput.php');
       return;
     }
 
-    if (strlen($_POST['recipetitle']) > 255){
-      $_SESSION['error'] = 'Recipe title is too long, please abbreviate. Max 255 characters.';
-      header('Location: recipeinput.php');
-      return;
-    }
-
-    // no. served, must be integer
-    if (!is_numeric($_POST['serves'])){
-      $_SESSION['error'] = 'The number of people served by the recipe must be provided and be a whole number.';
-      header('Location: recipeinput.php');
-      return;
-    }
-
-      require_once('utilsValidation.php');
+    //echo "Upload: " . $_FILES["photoUpload"]["name"] . "<br />";
+    //echo "Type: " . $_FILES["photoUpload"]["type"] . "<br />";
+    //echo "Size: " . ($_FILES["photoUpload"]["size"] / 1024) . " Kb<br />";
+    //echo "Temp file: " . $_FILES["photoUpload"]["tmp_name"] . "<br />";
+    //echo "Title: ".$_POST["recipetitle"]. "<br />";
 
 
-      validateIngredients('Location: recipeinput.php');
+    //[$width, $height, $type, $attr] = getimagesize($_FILES["photoUpload"]["tmp_name"]);
 
-
-
-      validateSteps('Location: recipeinput.php');
-
-      // validate the language
+    //echo "Width: ".$width. "<br />";
+    //echo "Height: ".$height. "<br />";
+    //echo "Type: ".$type. "<br />";
+    //echo "Attr: ".$attr. "<br />";
+    //echo "Language: ".$_POST["lang"]. "<br />";
 
 
 
 
-      $lang_id = validateLanguage('Location: recipeinput.php', $pdo);
-
-
-      // now update data in database
 
 
 
-      $stmt = $pdo -> prepare('INSERT INTO recipeHead (title, vegetarian, vegan, glutenfree, numserved, private, fork_id, user_id, lang_id)
-                               VALUES (:tit, :veggie, :vegan, :glutenfree, :served, :private, :fork, :user, :lang_id)');
+
+    try {
+      $pdo -> beginTransaction();
+
+      $stmt = $pdo -> prepare('INSERT INTO recipeHead (title, recipeType_id, vegetarian, vegan, glutenfree, numserved, private, fork_id, user_id, lang_id)
+                               VALUES (:tit, :recipeType_id, :veggie, :vegan, :glutenfree, :served, :private, :fork, :user, :lang_id)');
       $stmt -> execute(array(
         ':tit' => $_POST['recipetitle'],
+        ':recipeType_id' => $_POST['recipeType'],
         ':veggie' => isset($_POST['vegetarian']) ? 1 : 0,
         ':vegan' => isset($_POST['vegan']) ? 1 : 0,
         ':glutenfree' => isset($_POST['glutenfree']) ? 1 : 0,
@@ -123,50 +149,86 @@
 
       }
 
+      // save the uploaded image, list the name of the file in the database
+      if (isset($_FILES["photoUpload"]) && $_FILES["photoUpload"]["name"]!==""){
+
+
+
+        $target_dir = "/Applications/MAMP/htdocs/shoppinghelper/img/recipes/";
+
+        $filename = tempnam($target_dir,'');
+        unlink($filename);
+        $target_file = $target_dir.basename($_FILES["photoUpload"]["name"]);
+
+        $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+
+        $savelocation = $filename.".".$imageFileType;
+        $filename = basename($filename).".".$imageFileType;
+        echo "Image file type: ".$imageFileType. "<br />";
+
+
+
+        $succ = move_uploaded_file($_FILES["photoUpload"]["tmp_name"], $savelocation);
+        //echo $succ. "<br />";
+
+        if ($succ === true){
+          $stmt = $pdo -> prepare('INSERT INTO images (recipe_id, filename, image_rank, upload_date) VALUES (:recipe_id, :filename, :image_rank, NOW())');
+
+          $stmt -> execute(array(
+              ':recipe_id' => $recipe_id,
+              ':filename' => $filename,
+              ':image_rank' => 0
+            )
+          );
+        }
+
+      }
+
+
+      $pdo -> commit();
       header('Location: recipe.php?recipe_id='.$recipe_id);
       $_SESSION['success'] = 'Recipe successfully loaded.';
       return;
 
-
+    } catch(Exception $e) {
+      $pdo -> rollBack();
+      $_SESSION['error'] = 'Error saving recipe to database.'.$e;
+      header('Location: recipeinput.php');
+      return;
     }
-
-
-
-
-
-
-
-
+}
 
 
 ?>
 
-
-
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
     <title>Groceries made Easy: Add new recipe</title>
     <?php require_once("headerscript.php") ?>
   </head>
+
+  <header>
+    <?php require_once("headerIn.html") ?>
+  </header>
+
   <body>
     <h1>Your Recipe</h1>
 
     <p class='errormessage'><?php if (isset($_SESSION['error'])){echo $_SESSION['error']; unset($_SESSION['error']);} ?></p>
-  <!-- give recipe title -->
-  <form method="post">
-    <p>
-      <h3>Recipe Title</h3><input type="text" name="recipetitle" value="" size=50px><br>
-      <label for="recipeShare">Recipe privacy status: </label><select class="recipeShare" name="recipeShare">
+
+    <form action="recipeInput.php" method="post" enctype="multipart/form-data">
+      <label for="recipetitle">Recipe Title:</label><input class="recipeInput" type="text" name="recipetitle" id="recipetitle" value=""><br>
+      <label for="recipeShare">Recipe privacy status: </label>
+      <select class="recipeShare" name="recipeShare">
         <option value="0" selected>Public</option>
         <option value="1">Private</option>
-      </select>
-    </p>
+      </select><br>
 
-  <div class="recipe_characteristics">
 
+      <label for="photoUpload">Upload an appetizing image:</label>
+      <input type="file" name="photoUpload" id="photoUpload">
 
       <h4>Recipe Characteristics</h4>
 
@@ -184,64 +246,84 @@
       <p>
       <label for="serves">Number served: </label><input type="number" name="serves" value="2" min="1" max="10" step="1"><br>
       </p>
-  </div>
-  <!-- add ingredients -->
+
+
+      <select class="recipeType" name="recipeType">
+        <option value="1">Starter</option>
+        <option value="2" selected>Main meal</option>
+        <option value="3">Snack</option>
+        <option value="4">Dessert</option>
+        <option value="5">Other</option>
+      </select>
+
+      <!-- add ingredients -->
 
 
 
-  <div class="add_recipe_ingredient">
+      <div class="add_recipe_ingredient">
 
-      <h4>Add Ingredients</h4>
-      <table>
-        <tr>
-          <th>Quantity</th><th>Measure</th><th>Ingredient</th>
-        </tr>
-        <tr>
-          <td><input type="text" name="quantity" value="" size="10" id="quantity"></td> <!-- use javascript to ensure value is numeric -->
-          <td><select class="measure" name="measure" id="measure">
-            <option value="" selected></option>
-            <option value="g">g</option>
-            <option value="kg">kg</option>
-            <option value="ml">ml</option>
-            <option value="l">l</option>
-          </select></td>
-          <td><input type="text" name="addIngredient" value="" class="inputIngredient" placeholder="Ingredient name" id="ingredient"><input type="submit" name="ingredientSubmit" value="submit" id="addIngredient"></td>
+          <h4>Add Ingredients</h4>
+          <table>
+            <tr>
+              <th>Quantity</th><th>Measure</th><th>Ingredient</th>
+            </tr>
+            <tr>
+              <td><input type="text" name="quantity" value="" size="10" id="quantity"></td> <!-- use javascript to ensure value is numeric -->
+              <td><select class="measure" name="measure" id="measure">
+                <option value="" selected></option>
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="ml">ml</option>
+                <option value="l">l</option>
+              </select></td>
+              <td><input type="text" name="addIngredient" value="" class="inputIngredient" placeholder="Ingredient name" id="ingredient"><input type="submit" name="ingredientSubmit" value="submit" id="addIngredient"></td>
 
-        </tr>
-      </table>
+            </tr>
+          </table>
 
-<!-- use javascript to fill in a table on the browser, ingredient by ingredient -->
-      <table id="ingredientsTable">
-        <thead >
-          <tr hidden="true" id="ingredtableheadings">
-          <th>Quantity</th>
-          <th></th>
-          <th>Ingredient</th>
-          <th>Delete</th>
-        </tr>
-        </thead>
-        <input type="hidden" name="noIngreds_1" id="noIngreds_1" value="0">
-      </table>
+    <!-- use javascript to fill in a table on the browser, ingredient by ingredient -->
+          <table id="ingredientsTable">
+            <thead >
+              <tr hidden="true" id="ingredtableheadings">
+              <th>Quantity</th>
+              <th></th>
+              <th>Ingredient</th>
+              <th>Delete</th>
+            </tr>
+            </thead>
+            <input type="hidden" name="noIngreds_1" id="noIngreds_1" value="0">
+          </table>
 
-  </div>
-
-
-  <!-- add recipe steps -->
-  <h4>Add recipe steps </h4>
-  <!-- image upload -->
-  <div id="recipeSteps">
-  </div>
-  <input id="addStep" type="submit" value="+">
-  <input type="hidden" name="noSteps_1" id="noSteps_1" value="0">
-  <!-- submit completed recipe -->
-
-  <input type="submit" name="recipesubmit" value="Upload Recipe">
-  </form>
+      </div>
 
 
+      <!-- add recipe steps -->
+      <h4>Add recipe steps </h4>
+      <!-- image upload -->
+      <div id="recipeSteps">
+      </div>
+      <input id="addStep" type="submit" value="+">
+      <input type="hidden" name="noSteps_1" id="noSteps_1" value="0">
+      <br>
+      <button type="submit" name="recipesubmit">Upload Recipe <i class="bi bi-cloud-upload"></i></button>
+
+
+
+
+    </form>
   </body>
 
   <script type="text/javascript">
+
+    function displayDropdown(inputElement) {
+      let x = inputElement.nextElementSibling;
+      if (x.style.display=="inline-block") {
+        x.style.display="none";
+        return false;
+      }
+      x.style.display="inline-block";
+    }
+
 
     function validateIngredient() {
       quantity = $('#quantity').val();
@@ -349,7 +431,7 @@
       noSteps = $("#recipeSteps div").length;
       $("#noSteps_1").val(noSteps+1);
       $("#recipeSteps").append(
-        '<div id="step'+noSteps+'"><p>Step <span id="stepNumber'+noSteps+'">'+(noSteps+1)+'</span><input type="text" value = "" name="stepTitle'+noSteps+'" id="stepTitle'+noSteps+'" size=40px><input type="button" value="-" onclick="deleteSteps(this);"></p><textarea id="stepText'+noSteps+'" name ="stepText'+noSteps+'"rows=8" cols="80"></textarea></div>'
+        '<div id="step'+noSteps+'"><p>Step <span id="stepNumber'+noSteps+'" class="stepNumber">'+(noSteps+1)+'</span><input type="text" value = "" name="stepTitle'+noSteps+'" id="stepTitle'+noSteps+'" size=40px class="stepTitle"><input type="button" value="-" onclick="deleteSteps(this);"></p><textarea id="stepText'+noSteps+'" name ="stepText'+noSteps+'"rows=8" cols="80" class="stepText"></textarea></div>'
       //  '<div id="Step'+noSteps+'"><p>Step '+(noSteps+1)+':</p><input type="text" value="" name="stepHead'+noSteps'"></p><textarea name ="stepDesc'+noSteps+'"rows=8" cols="80"></textarea></div><br>'
       );
     }
@@ -379,4 +461,5 @@
       }
     )
   </script>
+
 </html>
