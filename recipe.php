@@ -14,7 +14,7 @@ if (!isset($_GET['recipe_id']) || !is_numeric($_GET['recipe_id'])){
 
 // get the recipe out of the database
 
-$stmt = $pdo -> prepare("SELECT * FROM recipeHead WHERE recipe_id = :recipe_id");
+$stmt = $pdo -> prepare("SELECT recipeHead.*, recipeType.recipeType_nameEng FROM recipeHead LEFT JOIN recipeType ON recipeHead.recipeType_id = recipeType.recipeType_id WHERE recipe_id = :recipe_id ");
 
 $stmt -> execute(array(
   ':recipe_id' =>  $_GET['recipe_id']
@@ -34,6 +34,26 @@ if ($recipehead['private']===1 && $row['user_id']!==$_SESSION['user_id']) {
   return;
 }
 
+// prepare recipe characteristics
+if ($recipehead['vegetarian'] > 0) {
+  $vegetarian = '<div class="recipechar" id="veggie">Vegetarian</div>';
+} else {
+  $vegetarian = '';
+}
+if ($recipehead['vegan']>0){
+  $vegan = '<div class="recipechar" id="vegan">Vegan</div>';
+} else {
+  $vegan = '';
+}
+if ($recipehead['vegan']>0){
+  $glutenfree = '<div class="recipechar" id="glutenfree">Gluten-free</div>';
+} else {
+  $glutenfree = '';
+}
+
+$serves = $recipehead['numserved'];
+$type = $recipehead['recipeType_nameEng'];
+
 // get the ingredients out of the database
 $stmt = $pdo -> prepare('SELECT recipe_id, recipeIngredients.ingredient_id, quantity, measure, name FROM recipeIngredients JOIN ingredients ON recipeIngredients.ingredient_id = ingredients.ingredient_id WHERE recipe_id = :recipe_id ORDER BY input_rank');
 $stmt -> execute(array(
@@ -41,6 +61,20 @@ $stmt -> execute(array(
 ));
 
 $recipeIngredients = $stmt -> fetchAll(PDO::FETCH_ASSOC);
+
+// get the name of the image from the database
+$stmt = $pdo -> prepare('SELECT filename FROM images WHERE recipe_id = :recipe_id AND image_rank = 0;');
+$stmt -> execute(array(
+  ':recipe_id' =>  $_GET['recipe_id']
+));
+
+$imageName = $stmt -> fetch(PDO::FETCH_ASSOC);
+//echo $imageName['filename'];
+if ($imageName != 0){
+  $imageLoc = "img/recipes/".$imageName['filename'];
+} else {
+  $imageLoc = "img/recipes/"."default.jpg"; // is a default image, need to find a suitable image
+}
 
 // get the instructions out of the database
 $stmt = $pdo -> prepare('SELECT * FROM recipeSteps WHERE recipe_id = :recipe_id');
@@ -65,7 +99,7 @@ for ($i=0; $i < count($recipeSteps); $i++){
 }
 
 // check if the recipe is already in the users shopping list
-$stmt = $pdo -> prepare('SELECT COUNT(*) AS noIngredients FROM shoppingList WHERE user_id = :user_id AND sourcerecipe_id = :recipe_id');
+$stmt = $pdo -> prepare('SELECT COUNT(*) AS noIngredients FROM recipeShopping WHERE user_id = :user_id AND sourcerecipe_id = :recipe_id');
 $stmt -> execute(array(
   ':user_id' => $_SESSION['user_id'],
   ':recipe_id' => $_GET['recipe_id']
@@ -88,12 +122,36 @@ if ($row['noIngredients'] > 0){
     <title>Groceries made Easy: <?= $recipehead['title']?></title>
     <?php require_once("headerscript.php") ?>
   </head>
+
+  <header>
+    <?php require_once("headerIn.html") ?>
+  </header>
+
   <body>
     <!-- title -->
     <h2 class="recipeTitle"><?= htmlentities($recipehead['title']) ?></h2>
+
+    <!-- image -->
+    <figure>
+      <img src="<?= $imageLoc ?>" alt="Cooked Dish" class="recipeHeadIMG">
+    </figure>
+
+
+
     <!-- Characteristics -->
 
+    <div id="recipeCharacteristics">
+      <div id="recipetype" class="recipechar"><?= $type ?></div>
+      <div id="noserved" class="recipechar">Serves <?= $serves ?></div>
+
+      <?= $vegan ?>
+      <?= $vegetarian ?>
+      <?= $glutenfree ?>
+
+    </div>
+
     <!-- Ingredients -->
+    <br>
     <h4>Ingredients</h4>
     <?= $ingredienttext ?>
 
