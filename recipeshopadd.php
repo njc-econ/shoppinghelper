@@ -15,7 +15,13 @@
 
   // if valid, add recipe ingredients to the shopping list
 
-  $stmt = $pdo -> prepare('INSERT INTO shoppingList (user_id, item_id, quantity, measure, sourcerecipe_id ,addDT)
+  $stmt = $pdo -> prepare('INSERT INTO recipeShopping (user_id, sourcerecipe_id, addedDT) VALUES (:user_id, :sourcerecipe_id, NOW())');
+  $stmt -> execute(array(
+    ':user_id' => $_SESSION['user_id'],
+    ':sourcerecipe_id' => $_GET['recipe_id']
+  ));
+
+  /*$stmt = $pdo -> prepare('INSERT INTO shoppingList (user_id, item_id, quantity, measure, sourcerecipe_id ,addDT)
                   SELECT :user_id AS user_id, item_id, quantity, measure, :recipe_id AS sourcerecipe_id , NOW() as addDT
                   FROM recipeIngredients
                   JOIN ingredientShopping
@@ -25,6 +31,8 @@
     ':user_id' => $_SESSION['user_id'],
     ':recipe_id' => $_GET['recipe_id']
   ));
+  */
+
   header('Content-Type: text/html; charset=UTF-8');
   echo $stmt !== false ? 1 : 0;
 ?>
