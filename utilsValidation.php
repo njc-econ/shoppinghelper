@@ -87,4 +87,42 @@ function validateIngredients($redirectAdd) {
 
     return $row['lang_id'];
   }
+
+  function validateImage($redirectAdd) {
+    if (isset($_FILES["photoUpload"]) && $_FILES["photoUpload"]["name"]!==""){
+
+      $check = getimagesize($_FILES["photoUpload"]["tmp_name"]);
+      if($check == false) {
+        $_SESSION['error'] = 'Uploaded file is not an image';
+        header($redirectAdd);
+        return;
+      }
+
+
+
+
+      if ($_FILES["photoUpload"]["size"] / 1024 > 5000){
+        $_SESSION['error'] = 'Image file is too large, file cannot be larger than 5MB.';
+        header($redirectAdd);
+        return;
+      }
+
+      $allowedImageTypes = array("png", "jpg","jpeg");
+      if (! in_array(pathinfo($_FILES["photoUpload"]["name"],PATHINFO_EXTENSION),$allowedImageTypes)){
+        $_SESSION['error'] = 'Only jpg and png image files are accepted.';
+        header($redirectAdd);
+        return;
+      }
+
+      [$width, $height, $type, $attr] = getimagesize($_FILES["photoUpload"]["tmp_name"]);
+      if ($height / $width > 2 || $height / $width < 0.5){
+        $_SESSION['error'] = 'Image files should be close to square, please crop and try again';
+        header($redirectAdd);
+        return;
+      }
+
+    }
+    return true;
+  }
+
  ?>
