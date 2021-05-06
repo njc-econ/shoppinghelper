@@ -26,7 +26,7 @@
         return;
       }
 
-      $stmt = $pdo -> prepare('SELECT user_id, forename, email, password FROM users WHERE email = :email;');
+      $stmt = $pdo -> prepare('SELECT user_id, forename, email, password, preferred_lang FROM users WHERE email = :email;');
       $statementOutput = $stmt -> execute( array(
         ':email' => $_POST['email'])
       );
@@ -35,6 +35,7 @@
         if (password_verify($_POST['pass'], $result['password'])) {
           $_SESSION["user_id"] = $result['user_id'];
           $_SESSION["name"] = $result['forename'];
+          $_SESSION["lang"] = $result['preferred_lang'];
           header('Location: start.php');
           return;
         }
