@@ -7,13 +7,20 @@ html{
   margin: 0 auto;
 }
 
+textarea {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 95%;
+}
+
 
 body {
   background-color: #54bc5a66;
   text-align: center;
   table-layout: fixed;
   margin: 0 auto;
-  width: 100%
+  width: 100%;
 }
 
 p {
@@ -35,6 +42,7 @@ header {
   background-color: #000000;
   min-height: 45px;
   color: #54bc5a66;
+  height: 100%;
 }
 
 /* Links inside the navbar */
@@ -46,17 +54,33 @@ header {
  text-decoration: none;
 }
 
+.recipeHeadIMG {
+  width: 90%;
+}
+
+.recipechar {
+  display: inline-block;
+  width: 20%;
+  float: left;
+}
+
+#recipeCharacteristics {
+  margin: 0 auto;
+  width: 80%;
+}
+
 /* put the logout button on the right */
 .logout {
   float: right;
+  width: 15%;
   /*overflow: hidden;*/
-
+  max-width: 50px;
 }
 
 .logout a {
   color: #54bc5a66;
 
-  /*font-size: 2rem;*/
+  font-size: 1.5rem;
   border: none;
   height: 100%;
   text-decoration: none;
@@ -66,6 +90,16 @@ header {
 .dropdown {
   float: left;
   overflow: hidden;
+  width:15%;
+  max-width: 50px;
+}
+
+#navbarText {
+  display: inline-block;
+  height: 100%;
+  width: 60%;
+  padding: 0.5em;
+  font-size: 1.5em;
 }
 
 /* Dropdown button */
@@ -74,7 +108,9 @@ header {
   background-color: #000000;
   border: none;
   height: 100%;
-  font-size: 2em;
+  font-size: 1.7rem;
+  padding: 0.5rem;
+
 }
 
 /* Dropdown content (hidden by default) */
@@ -90,11 +126,12 @@ header {
 /* Links inside the dropdown */
 .dropdown-content a {
   text-decoration: none;
-  padding: 0.3em 0.3em;
+  padding: 1em;
   background-color: #000000;
   color: #54bc5a66;
   display: block;
   float: none;
+  font-size: 1em;
 }
 
 /* Show the dropdown menu on hover */
