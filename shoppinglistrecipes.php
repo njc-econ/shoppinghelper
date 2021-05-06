@@ -5,7 +5,7 @@
   $stmt = $pdo -> prepare('
   SELECT
   ingredientShopping.item_id,
-  SUM(recipeIngredients.quantity),
+  SUM(recipeIngredients.quantity) AS quantity,
   recipeIngredients.measure,
   ingredients.name
   FROM recipeShopping
