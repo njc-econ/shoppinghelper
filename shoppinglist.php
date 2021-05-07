@@ -52,25 +52,6 @@
     ));
   }
 
-  // prepare output of the saved shopping list, includes buttons
-  // to remove item and mark as bought
-  $stmt = $pdo -> prepare('SELECT shoppingList.item_id, itemname, quantity FROM shoppingList JOIN shoppingItems ON shoppingList.item_id = shoppingItems.item_id WHERE user_id = :user_id AND purchasedDT IS NULL');
-  $statementOutput = $stmt -> execute( array(
-    ':user_id' => $_SESSION['user_id']));
-  $result = $stmt -> fetchAll(PDO::FETCH_ASSOC);
-  //print_r($result[0]['itemname']);
-  $tablerow = '';
-  if (count($result)!== false){
-    $tablerow = "<table>";
-    for ($i = 0; $i < count($result); $i++) {
-      $tablerow = $tablerow.'<tr><td>'.$result[$i]['quantity']."</td><td>".$result[$i]['itemname'].'</td><td><form method="post">
-      <input type="hidden" name="item_id" value='.$result[$i]["item_id"].'>
-      <input type="submit" name="bought" value="Bought"></form>'."</td></tr>";
-    }
-    $tablerow = $tablerow."</table>";
-  }
-
-
 
 ?>
 
@@ -90,6 +71,7 @@
   <body>
     <!-- First list all the recipes that have been added to
          the shopping list, allow the user to remove them easily -->
+    <p style="color: red;"><?php echo $message ?></p>
     <h2>Recipes on Shopping List</h2>
     <div class="recipeList" id="recipeList">
 
@@ -106,31 +88,73 @@
 
     <h2>Your Shopping List</h2>
     <!-- Then allow the user to add additional items -->
+    <div class="listItems" id="listItems">
 
+    </div>
 
-
-    <table>
-      <tr>
-        <form method="post">
+    <div>
+      <table>
+        <tr>
+          <form method="post">
+            <td>
+              <input type="text" name="newQuantity" placeholder="Quantity" id="newQuantity" size= "10px">
+             </td>
           <td>
-            <input type="text" name="newQuantity" placeholder="Quantity" id="newQuantity" size= "10px">
+            <input type="text" name="newItem" placeholder="Item" id="newItem" size="50px">
            </td>
-        <td>
-          <input type="text" name="newItem" placeholder="Item" id="newItem" size="50px">
-         </td>
 
-          <td>
-            <input type="submit" name="itemSubmit" value="Add" id="newQuantity" size= "20px">
-           </td>
-        </form>
-      </tr>
-    </table>
-    <p style="color: red;"><?php echo $message ?></p>
-    <p> <?php echo $tablerow ?> </p>
+            <td>
+              <input type="submit" name="itemSubmit" value="Add" id="itemSubmit" size= "20px" onclick="addItem(); return false">
+             </td>
+          </form>
+        </tr>
+      </table>
+    </div>
+
+
+
+
+
   </body>
 </html>
 
 <script type="text/javascript">
+
+
+
+    function addItem() {
+      // validate the data
+      // console.log($("#newItem"));
+      var itemname = $("#newItem").val();
+      if (itemname.length == 0){
+        alert("Item name cannot be blank.");
+        return false;
+      }
+
+
+      // collect the quantity element
+      var quant = $("#newQuantity").val();
+
+      tableContent = '<tr><td><span name="quant">'+quant+'</span></td>';
+      tableContent += '<td>'+itemname+'</td>';
+      tableContent += '<td><input type="hidden" name="item_id" value="NA">';
+      tableContent += '<input type="submit" name="bought" value="Bought" onclick="boughtItem(this)"></td>';
+      tableContent += '<td><button type="button" onclick="editQuantity(this)">Edit</button></td></tr>';
+
+      // check if there is already a shopping list on the page
+      var table = $("#listItems").children();
+      // if not create the table put the data in
+      if (table.length == null){
+        var tableText = '<table id=shoppingTable>';
+        tableText += tableContent + '</table>';
+        $('#listItems').append(tableText);
+        $('#listItems').append('<input type="submit" value="Save Changes" id="saveToCloud" onclick="saveToCloud()">');
+      } else {
+        var tableParent = $("#listItems").find("tr").parent();
+        tableParent.append(tableContent);
+      }
+
+    }
 
     function recipeRemove(id) {
       $.post("recipeshopremove.php?recipe_id="+id, function(data){
@@ -140,6 +164,75 @@
       });
     }
 
+    function itemInPantry(btn) {
+      var saveid = $(btn).parents("tr");
+
+      // strike through the text for the items
+      $(saveid).children("td").css("text-decoration","line-through");
+      var button = $(saveid).children("td").children('input[type="submit"]');
+
+      // remove (hide) the in pantry button
+      $(button).attr("type","hidden");
+
+    }
+
+
+
+    function editQuantity(btn) {
+      // edit the given row of the table to allow the user to edit the
+      // quantity
+      var saveid = $(btn).parents("tr");
+
+      // take the info
+      var quant = $(saveid).children("td").children("span[name='quant']");
+      var item = $(saveid).children("td").children("span[name='itemname']");
+      var oldquant = quant.text();
+      var olditem = item.text();
+      quant.text('');
+      quant.append('<input type="text" name="quantity" value="'+oldquant+'" size="10">');
+      item.text('');
+      item.append('<input type="text" name="newItem" placeholder="Item" id="newItem" size="50px" value="'+olditem+'" on>');
+
+      var edit = $(saveid).children("td").children("button");
+      $(edit).text('Update');
+      $(edit).attr("onclick","updateQuantity(this)");
+
+    }
+
+    function updateQuantity(btn) {
+      var saveid = $(btn).parents("tr");
+
+      // take the info
+      var quant = $(saveid).children("td").children("span[name='quant']").children("input");
+      var oldquant = quant.attr("value");
+      $(saveid).children("td").children("span[name='quant']").empty();
+      $(saveid).children("td").children("span[name='quant']").text(oldquant);
+
+      var item = $(saveid).children("td").children("span[name='itemname']").children("input");
+      var olditem = item.attr("value");
+      $(saveid).children("td").children("span[name='itemname']").empty();
+      $(saveid).children("td").children("span[name='itemname']").text(olditem);
+
+
+      //quant.text('');
+      //console.log(oldquant);
+      var update = $(saveid).children("td").children("button");
+      $(update).text('Edit');
+      $(update).attr("onclick","editQuantity(this)");
+
+    }
+
+    function saveToCloud() {
+      // user edits the shopping list data on the browser,
+      // hits button to save changes so that data on server updates
+      // i.e. when two people are active on the list other user sees changes
+
+
+    }
+
+    function boughtItem(btn) {
+
+    }
 
     // populate a list of recipes on shopping list
     $.getJSON("recipeonlist.php", function(data){
@@ -168,18 +261,37 @@
         for (i in data){
             tableText += '<tr><td>';
             tableText += '<input type="hidden" name="item_id" value="'+data[i].item_id+'">';
-            tableText += '<div >'+data[i].quantity +data[i].measure+'</div></td>';
+            tableText += data[i].quantity+'<span name="measure">' +data[i].measure+'</span></td>';
             tableText += '<td>'+data[i].name +'</td>';
-            tableText += '<td><form method="post">';
+            tableText += '<td>';
             tableText += '<input type="hidden" name="item_id" value='+data[i].item_id+'>';
-            tableText += '<input type="submit" name="bought" value="Bought" id="'+"item"+i+'"></form></td>';
+            tableText += '<input type="submit" name="inpantry" value="In Pantry" id="'+"item"+i+'" onclick="false; itemInPantry(this)"></td>';
             tableText += '</tr>';
         }
         tableText += '</table>';
         $('#recipeItems').append(tableText);
+        $('#recipeItems').append('<button type="button" onclick="">Add to Shopping List</button>')
       }
 
     });
+
+    $.getJSON("shoppinglistcollect.php", function(data){
+      if (data.length > 0) {
+
+        var tableText = '<table id=shoppingTable>'
+
+          for (i in data) {
+            tableText += '<tr><td><span name="quant">'+data[i].quantity+'</span></td><td><span name="itemname">'+data[i].itemname+'</span></td>';
+            tableText += '<td><input type="hidden" name="item_id" value="'
+            tableText += data[i].item_id+'"><input type="submit" name="bought" value="Bought" onclick="boughtItem(this)"></td>';
+            tableText += '<td><button type="button" onclick="editQuantity(this)">Edit</button></td></tr>';
+          }
+          tableText += "</table>";
+        }
+        $('#listItems').append(tableText);
+        $('#listItems').append('<input type="submit" value="Save Changes" id="saveToCloud" onclick="saveToCloud()">');
+    });
+
 
     // process data to send to server
 
@@ -187,9 +299,10 @@
 
 
       function(){
-        console.log("Hello Nathan");
-        if (! document.getElementById("recipeIngred") == null){
-          elementsOnList = document.getElementById("recipeIngred").childElementCount;
+        var counter = 0;
+        console.log("Hello Nathan"+counter);
+        if (! document.getElementById("#recipeIngred") == null){
+          elementsOnList = document.getElementById("#recipeIngred").childElementCount;
           console.log(elementsOnList);
           if (elementsOnList > 0){
             for (i=0; i<elementsOnList; i++){
@@ -199,12 +312,6 @@
           }
         }
 
-        $('#item1').click(
-          function(event){
-            event.preventDefault();
-            console.log("What now?");
-          }
-        );
 
       }
     )
