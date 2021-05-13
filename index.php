@@ -64,7 +64,14 @@
     <title>Groceries made Easy</title>
     <?php require_once("headerscript.php") ?>
   </head>
+
+  <header>
+    <?php require_once("headerOut.html") ?>
+  </header>
+
   <body>
+
+
 
     <h2>Sign in:</h2>
     <p class="erroroutput">
