@@ -10,7 +10,7 @@
     FROM recipeShopping
     INNER JOIN recipeHead
     ON recipeShopping.sourcerecipe_id = recipeHead.recipe_id
-    WHERE recipeShopping.user_id = :user_id'
+    WHERE recipeShopping.user_id = :user_id AND toshoppingDT IS NULL'
   );
 
   $result = $stmt -> execute(array(

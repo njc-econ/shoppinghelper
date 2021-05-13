@@ -15,7 +15,7 @@
   ON recipeIngredients.ingredient_id=ingredientShopping.ingredient_id
   JOIN ingredients
   ON recipeIngredients.ingredient_id = ingredients.ingredient_id
-  WHERE user_id = :user_id
+  WHERE user_id = :user_id AND toshoppingDT IS NULL
   GROUP BY ingredientShopping.item_id, recipeIngredients.measure, ingredients.name
   ');
 

@@ -12,7 +12,7 @@
   // that for something to be deleted it must already be on the shopping list,
   // if not 0 rows will be deleted
 
-  $stmt = $pdo -> prepare('DELETE FROM recipeShopping WHERE user_id = :user_id AND sourcerecipe_id = :recipe_id');
+  $stmt = $pdo -> prepare('DELETE FROM recipeShopping WHERE user_id = :user_id AND sourcerecipe_id = :recipe_id AND toshoppingDT IS NULL');
   $result = $stmt -> execute(array(
     ':user_id' => $_SESSION['user_id'],
     'recipe_id' => $_GET['recipe_id']

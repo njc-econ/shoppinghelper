@@ -99,7 +99,7 @@ for ($i=0; $i < count($recipeSteps); $i++){
 }
 
 // check if the recipe is already in the users shopping list
-$stmt = $pdo -> prepare('SELECT COUNT(*) AS noIngredients FROM recipeShopping WHERE user_id = :user_id AND sourcerecipe_id = :recipe_id');
+$stmt = $pdo -> prepare('SELECT COUNT(*) AS noIngredients FROM recipeShopping WHERE user_id = :user_id AND sourcerecipe_id = :recipe_id AND toshoppingDT IS NULL');
 $stmt -> execute(array(
   ':user_id' => $_SESSION['user_id'],
   ':recipe_id' => $_GET['recipe_id']
