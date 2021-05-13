@@ -105,6 +105,9 @@ CREATE TABLE recipeRatings (
   PRIMARY KEY (`user_id`,`recipe_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+/*
+  Table with names of all items ever placed on a shopping list
+*/
 CREATE TABLE shoppingItems (
   `item_id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
   `itemname` VARCHAR(50) NOT NULL UNIQUE,
@@ -121,6 +124,7 @@ CREATE TABLE recipeShopping (
   `user_id` INT(11) unsigned NOT NULL,
   `sourcerecipe_id` INT(11) unsigned NOT NULL,
   `addedDT` DATETIME NOT NULL,
+  `toshoppingDT` DATETIME,
   CONSTRAINT FOREIGN KEY (`sourcerecipe_id`) REFERENCES recipeHead (`recipe_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -129,16 +133,15 @@ CREATE TABLE `shoppingList` (
   `user_id` INT(11) unsigned NOT NULL,
   `item_id` INT(11) unsigned NOT NULL,
   `quantity` VARCHAR(20),
-  `measure` VARCHAR(5),
   `addDT` DATETIME NOT NULL,
-  `sourcerecipe_id` INT(11) unsigned,
+--  `sourcerecipe_id` INT(11) unsigned,
   `inpantryDT` DATETIME,
   `purchasedDT` DATETIME,
   `modifiedDT` DATETIME,
    CONSTRAINT FOREIGN KEY (`item_id`) REFERENCES shoppingItems (`item_id`),
-   CONSTRAINT FOREIGN KEY (`user_id`) REFERENCES users (`user_id`),
-   CONSTRAINT FOREIGN KEY (`sourcerecipe_id`) REFERENCES recipeHead (`recipe_id`)
- ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+   CONSTRAINT FOREIGN KEY (`user_id`) REFERENCES users (`user_id`)
+--   CONSTRAINT FOREIGN KEY (`sourcerecipe_id`) REFERENCES recipeHead (`recipe_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE `shoppingListConsolidated` (
   `user_id` INT(11) unsigned NOT NULL,
@@ -146,7 +149,7 @@ CREATE TABLE `shoppingListConsolidated` (
   `quantity` VARCHAR(20),
   `measure` VARCHAR(5),
   `inpantryDT` DATETIME,
-  `purchasedDT` DATETIME,
+  `toshoppinglistDT` DATETIME,
   `modifiedDT` DATETIME,
   CONSTRAINT FOREIGN KEY (`item_id`) REFERENCES shoppingItems (`item_id`),
   CONSTRAINT FOREIGN KEY (`user_id`) REFERENCES users (`user_id`)
@@ -171,4 +174,14 @@ CREATE TRIGGER shoppingItemUpdate
       INSERT INTO ingredientShopping (ingredient_id, item_id)
         SELECT NEW.ingredient_id, item_id FROM shoppingItems WHERE shoppingItems.itemname=NEW.name;
 END;$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TRIGGER recipeToShopping
+    AFTER INSERT ON shoppingListConsolidated FOR EACH ROW
+    BEGIN
+      IF !(NEW.toshoppinglistDT IS NULL) THEN
+      INSERT INTO shoppingList (user_id, item_id, quantity, addDT) VALUES (NEW.user_id, NEW.item_id, CONCAT(NEW.quantity, NEW.measure), NOW());
+      END IF;
+    END;$$
 DELIMITER ;
