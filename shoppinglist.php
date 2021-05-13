@@ -176,6 +176,17 @@
 
     }
 
+    function boughtItem(btn) {
+      var saveid = $(btn).parents("tr");
+      // strike through the text for the items
+      $(saveid).children("td").css("text-decoration","line-through");
+      var button = $(saveid).children("td").children('input[type="submit"]');
+
+      // remove (hide) the in pantry button
+      $(button).attr("type","hidden");
+
+    }
+
 
 
     function editQuantity(btn) {
@@ -227,12 +238,64 @@
       // hits button to save changes so that data on server updates
       // i.e. when two people are active on the list other user sees changes
 
+      var table = $("#shoppingTable").find("tbody").children();
+      if (table.length==0){
+        table = $("#shoppingTable").children();
+      }
+
+      var output = {};
+      for (i=0; i<table.length; i++){
+
+        output[i] = processRowDataRecipe(table[i]);
+      }
+
+      // if successful clear the table data and reload the shopping list
+      $.post("shoppinglistupdate.php",output,function(data){
+        if (data == 1){
+          window.location.replace("shoppinglist.php");
+        }
+      },"text");
+
 
     }
 
-    function boughtItem(btn) {
+    function recipeItemsToShopping(){
+      // get the recipe items and send information to server
+      var table = $("#recipeIngred").find("tbody").children();
 
+      if (table.length==0){
+        table = $("#recipeIngred").children();
+      }
+
+      var output = {};
+      for (i=0; i<table.length; i++){
+
+        output[i] = processRowDataRecipe(table[i]);
+      }
+
+      // if successful clear the table data and reload the shopping list
+      $.post("recipeItemsToShoppingList.php",output,function(data){
+        if (data == 1){
+          window.location.replace("shoppinglist.php");
+        }
+      },"text");
     }
+
+    function processRowDataRecipe(data){
+      var output = {};
+      item_id_store = $(data).children("td").children("input[name='item_id']");
+      item_id = $(item_id_store).attr("value");
+      output['item_id'] = item_id;
+      pantrystatus = $(data).children("td").children("input[name='inpantry']");
+      if ($(pantrystatus).attr("type")=="hidden"){
+        output['inpantry'] = 1;
+      } else {
+        output['inpantry'] = 0;
+      }
+
+      return output;
+    }
+
 
     // populate a list of recipes on shopping list
     $.getJSON("recipeonlist.php", function(data){
@@ -270,7 +333,7 @@
         }
         tableText += '</table>';
         $('#recipeItems').append(tableText);
-        $('#recipeItems').append('<button type="button" onclick="">Add to Shopping List</button>')
+        $('#recipeItems').append('<button type="button" onclick="recipeItemsToShopping()">Add to Shopping List</button>');
       }
 
     });
@@ -283,7 +346,7 @@
           for (i in data) {
             tableText += '<tr><td><span name="quant">'+data[i].quantity+'</span></td><td><span name="itemname">'+data[i].itemname+'</span></td>';
             tableText += '<td><input type="hidden" name="item_id" value="'
-            tableText += data[i].item_id+'"><input type="submit" name="bought" value="Bought" onclick="boughtItem(this)"></td>';
+            tableText += data[i].item_id+'"><input type="submit" name="bought" value="Bought" onclick="false; boughtItem(this)"></td>';
             tableText += '<td><button type="button" onclick="editQuantity(this)">Edit</button></td></tr>';
           }
           tableText += "</table>";
