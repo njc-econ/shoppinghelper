@@ -57,8 +57,7 @@ CREATE TABLE ingredients (
   `name` VARCHAR(100),
   `lang_id` INT(2) unsigned,
   PRIMARY KEY (`ingredient_id`),
-  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (lang_id) ON DELETE CASCADE ON UPDATE CASCADE,
-  UNIQUE KEY (`name`,`lang_id`)
+  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (lang_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;
 
 CREATE TABLE images (
@@ -168,9 +167,9 @@ CREATE TRIGGER shoppingItemUpdate
     AFTER INSERT
     ON ingredients FOR EACH ROW
     BEGIN
-      SET @itemfound = (SELECT COUNT(*) FROM shoppingItems WHERE itemname=NEW.name AND lang=NEW.lang_id);
+      SET @itemfound = (SELECT COUNT(*) FROM shoppingItems WHERE itemname=NEW.name AND lang_id=NEW.lang_id);
       IF @itemfound = 0 THEN
-      INSERT INTO shoppingItems (itemname, lang) VALUES (NEW.name, NEW.lang_id);
+      INSERT INTO shoppingItems (itemname, lang_id) VALUES (NEW.name, NEW.lang_id);
       END IF;
       INSERT INTO ingredientShopping (ingredient_id, item_id)
         SELECT NEW.ingredient_id, item_id FROM shoppingItems WHERE shoppingItems.itemname=NEW.name;
