@@ -24,7 +24,7 @@
         ingredientShopping.item_id,
         SUM(recipeIngredients.quantity) AS quantity,
         recipeIngredients.measure,
-        NOW() AS inPantryDT,
+        NOW() AS inpantryDT,
         NOW() AS modifiedDT
         FROM recipeShopping
         JOIN recipeIngredients
@@ -33,7 +33,7 @@
         ON recipeIngredients.ingredient_id=ingredientShopping.ingredient_id
         JOIN ingredients
         ON recipeIngredients.ingredient_id = ingredients.ingredient_id
-        WHERE user_id = :user_id AND item_id = :item_id AND toShopping IS NULL
+        WHERE user_id = :user_id AND item_id = :item_id AND toshoppingDT IS NULL
         GROUP BY ingredientShopping.item_id, recipeIngredients.measure, ingredients.name
         ');
 
