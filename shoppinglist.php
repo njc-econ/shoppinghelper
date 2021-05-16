@@ -246,7 +246,7 @@
       var output = {};
       for (i=0; i<table.length; i++){
 
-        output[i] = processRowDataRecipe(table[i]);
+        output[i] = processRowDataShopping(table[i]);
       }
 
       // if successful clear the table data and reload the shopping list
@@ -293,6 +293,24 @@
         output['inpantry'] = 0;
       }
 
+      return output;
+    }
+
+    function processRowDataShopping(data){
+      var output = {};
+      item_id_store = $(data).children("td").children("input[name='item_id']");
+      item_id = $(item_id_store).attr("value");
+      output['item_id'] = item_id;
+      boughtstatus = $(data).children("td").children("input[name='bought']");
+      if ($(boughtstatus).attr("type")=="hidden"){
+        output['bought'] = 1;
+      } else {
+        output['bought'] = 0;
+      }
+      quantity = $(data).children("td").children("span[name='quant']").text();
+      output['quantity'] = quantity;
+      itemname = $(data).children("td").children("span[name='itemname']").text();
+      output['itemname'] = itemname;
       return output;
     }
 
