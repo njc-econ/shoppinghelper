@@ -95,7 +95,7 @@ try {
 
     // if the item has been bought update the shopping list
     if ($row['bought']==="1"){
-      $stmt = $pdo -> prepare('UPDATE shoppingList SET boughtDT = NOW() WHERE user_id = :user_id AND item_id=:item_id');
+      $stmt = $pdo -> prepare('UPDATE shoppingList SET purchasedDT = NOW() WHERE user_id = :user_id AND item_id=:item_id');
       $stmt -> execute(array(
         ':user_id' => $_SESSION['user_id'],
         ':item_id' => $item_id
