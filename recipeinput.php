@@ -218,7 +218,7 @@ if (isset($_POST["recipesubmit"])){
 
     <p class='errormessage'><?php if (isset($_SESSION['error'])){echo $_SESSION['error']; unset($_SESSION['error']);} ?></p>
 
-    <form action="recipeInput.php" method="post" enctype="multipart/form-data">
+    <form action="recipeinput.php" method="post" enctype="multipart/form-data">
       <label for="recipetitle">Recipe Title:</label><input class="recipeInput" type="text" name="recipetitle" id="recipetitle" value=""><br>
       <label for="recipeShare">Recipe privacy status: </label>
       <select class="recipeShare" name="recipeShare">
