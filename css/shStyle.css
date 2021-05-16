@@ -25,7 +25,12 @@ body {
 
 p {
   font-family: sans-serif;
+  margin-left: 2%;
+  margin-right: 2%;
+  text-align: left;
+  text-indent: 5px;
 }
+
 table {
   font-family: cursive;
   background-color: #54bc5a66;
@@ -164,6 +169,11 @@ header {
     max-width: 1200px;
     margin: 0 auto;
   }
+
+  p {
+    text-align: center;
+  }
+
 
 }
 
