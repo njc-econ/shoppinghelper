@@ -111,9 +111,10 @@ CREATE TABLE recipeRatings (
 CREATE TABLE shoppingItems (
   `item_id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
   `itemname` VARCHAR(50) NOT NULL UNIQUE,
-  `lang` INT(2) unsigned,
+  `lang_id` INT(2) unsigned,
   PRIMARY KEY (`item_id`),
-  UNIQUE KEY (`itemname`,`lang`)
+  UNIQUE KEY (`itemname`,`lang_id`),
+  CONSTRAINT FOREIGN KEY (`lang_id`) REFERENCES languages (`lang_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
