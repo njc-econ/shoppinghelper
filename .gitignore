@@ -6,3 +6,4 @@ jquery-ui.js
 *.png
 .DS_Store
 *.svg
+phpinfo.php
