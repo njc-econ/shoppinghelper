@@ -3,3 +3,6 @@ jquery-ui.css
 jquery-3.6.0.min.js
 jquery-ui.js
 *.jpg
+*.png
+.DS_Store
+*.svg
