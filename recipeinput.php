@@ -152,9 +152,7 @@ if (isset($_POST["recipesubmit"])){
       // save the uploaded image, list the name of the file in the database
       if (isset($_FILES["photoUpload"]) && $_FILES["photoUpload"]["name"]!==""){
 
-
-
-        $target_dir = "/Applications/MAMP/htdocs/shoppinghelper/img/recipes/";
+        $target_dir = $imagedir;
 
         $filename = tempnam($target_dir,'');
         unlink($filename);
